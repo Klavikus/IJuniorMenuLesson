@@ -8,46 +8,34 @@ public class HealthView : MonoBehaviour
     [SerializeField] private float _transitionMaxDelta;
     [SerializeField] private Image _fillImage;
 
-    private const float MaxError = 0.01f;
-
-    private float _targetHealth;
     private float _viewHealth;
-    private bool _inTransition;
-
+    private Coroutine _updateViewCoroutine;
+    
     private void OnEnable() => _health.HealthChanged += OnHealthChanged;
 
     private void OnDisable() => _health.HealthChanged += OnHealthChanged;
 
     private void Start()
     {
-        _targetHealth = _health.HealthPercentage;
-        _viewHealth = _targetHealth;
+        _viewHealth = _health.HealthPercentage;
         _fillImage.fillAmount = _viewHealth;
     }
 
     private void OnHealthChanged(float healthPercentage)
     {
-        _targetHealth = healthPercentage;
+        if (_updateViewCoroutine != null)
+            StopCoroutine(_updateViewCoroutine);
 
-        if (_inTransition)
-            return;
-
-        StartCoroutine(UpdateView());
+        _updateViewCoroutine = StartCoroutine(UpdateView(healthPercentage));
     }
 
-    private IEnumerator UpdateView()
+    private IEnumerator UpdateView(float healthPercentage)
     {
-        _inTransition = true;
-
-        while (Mathf.Abs(_viewHealth - _targetHealth) > MaxError)
+        while (_viewHealth != healthPercentage)
         {
-            _viewHealth = Mathf.MoveTowards(_viewHealth, _targetHealth, _transitionMaxDelta * Time.deltaTime);
+            _viewHealth = Mathf.MoveTowards(_viewHealth, healthPercentage, _transitionMaxDelta * Time.deltaTime);
             _fillImage.fillAmount = _viewHealth;
             yield return null;
         }
-
-        _viewHealth = _targetHealth;
-
-        _inTransition = false;
     }
 }
